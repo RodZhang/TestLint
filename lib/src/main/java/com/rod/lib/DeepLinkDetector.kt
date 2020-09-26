@@ -17,8 +17,11 @@ class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
     companion object {
         val ISSUE = Issue.create(
             id = "ImoDeepLink",
-            briefDescription = "hehe",
-            explanation = "haha",
+            briefDescription = "只在代码中声明了 DeepLink",
+            explanation = """
+                为了保证 DeepLink 在 Imo 内各场景中都能正常工作，
+                需要同时在代码和 AndroidManifest.xml 的 DeepLinkActivity 中声明 scheme/host
+            """.trimIndent(),
             category = Category.CORRECTNESS,
             priority = 8,
             severity = Severity.ERROR,
