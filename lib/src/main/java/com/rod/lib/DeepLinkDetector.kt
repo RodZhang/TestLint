@@ -33,11 +33,15 @@ class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
         val DEEPLINK_MAP = HashMap<String, ArrayList<String>>()
     }
 
+    /**
+     * deeplink 定义于 intent-filter 下的 data 结点
+     */
     override fun getApplicableElements(): Collection<String>? {
         return listOf("data")
     }
 
     override fun visitElement(context: XmlContext, element: Element) {
+        // 过滤，只要父结点的 android:name 值中包含 DeepLinkActivity 的 element
         if ((element.parentNode
                 ?.parentNode
                 ?.attributes
@@ -48,12 +52,15 @@ class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
             val host = element.getAttribute("android:host")
             val hostList = DEEPLINK_MAP[schema] ?: ArrayList()
             hostList.add(host)
+            // 把现有已定义的保存起来
             DEEPLINK_MAP[schema] = hostList
-            println(DEEPLINK_MAP)
         }
     }
 
     override fun getApplicableUastTypes(): List<Class<out UElement>>? {
+        // 表示我们要检查的是方法调用，包括普通方法和构造函数及数组的初始化调用
+        // 这里我们主要是需要检查构造函数，因为在代码中注册时
+        // deeplink 的 url 是通过构造函数传入的
         return listOf(UCallExpression::class.java)
     }
 
@@ -64,14 +71,17 @@ class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
     class DeepLinkUrlHandler(private val context: JavaContext) :
         UElementHandler() {
 
+        /**
+         * 此方法和 getApplicableUastTypes 中返回的 UCallExpression 对应
+         */
         override fun visitCallExpression(node: UCallExpression) {
             if (node.classReference?.resolvedName == "DeepLinkTemplate") {
-                val url =
-                    (node.valueArguments[0] as ULiteralExpression).value as String?
-                        ?: return
+                val url = (node.valueArguments[0] as ULiteralExpression).value as String? ?: return
                 val uri = URI.create(url)
                 val hostList = DEEPLINK_MAP[uri.scheme]
                 if (hostList?.contains(uri.host) == false) {
+                    // Lint 是先扫描 AndroidManifest.xml 后扫描 java/kotlin 文件
+                    // 如果代码中的 url 没有在 AndroidManifest 中场景，则报告 Issue
                     context.report(ISSUE, context.getLocation(node), "I get U")
                 }
             }
