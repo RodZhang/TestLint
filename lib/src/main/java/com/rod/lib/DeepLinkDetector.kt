@@ -12,7 +12,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 @Suppress("UnstableApiUsage")
-class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
+class DeepLinkDetector : Detector(), XmlScanner, Detector.UastScanner {
 
     companion object {
         val ISSUE = Issue.create(
@@ -79,7 +79,7 @@ class DeepLinkDetector : Detector(), Detector.XmlScanner, Detector.UastScanner {
                 val url = (node.valueArguments[0] as ULiteralExpression).value as String? ?: return
                 val uri = URI.create(url)
                 val hostList = DEEPLINK_MAP[uri.scheme]
-                if (hostList?.contains(uri.host) == false) {
+                if (hostList == null || !hostList.contains(uri.host)) {
                     // Lint 是先扫描 AndroidManifest.xml 后扫描 java/kotlin 文件
                     // 如果代码中的 url 没有在 AndroidManifest 中场景，则报告 Issue
                     context.report(ISSUE, context.getLocation(node), "I get U")

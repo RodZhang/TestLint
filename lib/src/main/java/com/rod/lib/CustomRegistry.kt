@@ -8,4 +8,6 @@ class CustomRegistry : IssueRegistry() {
 
     override val issues: List<Issue>
         get() = listOf(DeepLinkDetector.ISSUE)
+
+    override val api: Int = com.android.tools.lint.detector.api.CURRENT_API
 }
