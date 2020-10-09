@@ -7,7 +7,10 @@ import com.android.tools.lint.detector.api.Issue
 class CustomRegistry : IssueRegistry() {
 
     override val issues: List<Issue>
-        get() = listOf(DeepLinkDetector.ISSUE)
+        get() = listOf(
+            DeepLinkDetector.ISSUE,
+            CodeStyleDetector.ISSUE
+        )
 
     override val api: Int = com.android.tools.lint.detector.api.CURRENT_API
 }
