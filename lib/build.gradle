@@ -11,6 +11,6 @@ targetCompatibility = "1.8"
 
 jar {
     manifest {
-        attributes('Lint-Registry': 'com.rod.lib.CustomRegistry')
+        attributes('Lint-Registry-v2': 'com.rod.lib.CustomRegistry')
     }
 }

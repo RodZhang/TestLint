@@ -5,7 +5,8 @@ import com.android.tools.lint.detector.api.*
 import com.sun.org.apache.xerces.internal.dom.AttrNSImpl
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UElement
-import org.jetbrains.uast.ULiteralExpression
+import org.jetbrains.uast.UastCallKind.Companion.CONSTRUCTOR_CALL
+import org.jetbrains.uast.asRecursiveLogString
 import org.w3c.dom.Element
 import java.net.URI
 import java.util.*
@@ -50,6 +51,9 @@ class DeepLinkDetector : Detector(), XmlScanner, Detector.UastScanner {
         ) {
             val schema = element.getAttribute("android:scheme")
             val host = element.getAttribute("android:host")
+            if (schema.isBlank() || host.isBlank()) {
+                return
+            }
             val hostList = DEEPLINK_MAP[schema] ?: ArrayList()
             hostList.add(host)
             // 把现有已定义的保存起来
@@ -75,15 +79,24 @@ class DeepLinkDetector : Detector(), XmlScanner, Detector.UastScanner {
          * 此方法和 getApplicableUastTypes 中返回的 UCallExpression 对应
          */
         override fun visitCallExpression(node: UCallExpression) {
-            if (node.classReference?.resolvedName == "DeepLinkTemplate") {
-                val url = (node.valueArguments[0] as ULiteralExpression).value as String? ?: return
-                val uri = URI.create(url)
-                val hostList = DEEPLINK_MAP[uri.scheme]
-                if (hostList == null || !hostList.contains(uri.host)) {
-                    // Lint 是先扫描 AndroidManifest.xml 后扫描 java/kotlin 文件
-                    // 如果代码中的 url 没有在 AndroidManifest 中场景，则报告 Issue
-                    context.report(ISSUE, context.getLocation(node), "I get U")
-                }
+            println(node.asRecursiveLogString())
+            if (node.kind != CONSTRUCTOR_CALL
+                || node.methodIdentifier?.name != "DeepLinkTemplate") {
+                return
+            }
+            if (node.valueArgumentCount != 1) {
+                return
+            }
+            val url = node.valueArguments[0].evaluate()
+            if (url !is String) {
+                return
+            }
+            val uri = URI.create(url)
+            val hostList = DEEPLINK_MAP[uri.scheme]
+            if (hostList == null || !hostList.contains(uri.host)) {
+                // Lint 是先扫描 AndroidManifest.xml 后扫描 java/kotlin 文件
+                // 如果代码中的 url 没有在 AndroidManifest 中场景，则报告 Issue
+                context.report(ISSUE, context.getLocation(node), "I get U")
             }
         }
     }
